@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="Hexo Theme Keep">
+    <meta name="description" content="-------------------">
+    <meta name="author" content="@Vina">
+    
+    <title>
+        
+            源码分析-Lifecycle |
+        
+        Blog@Vina
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" href="/images/logo.svg">
+    
+<link rel="stylesheet" href="/css/font-awesome.min.css">
+
+    <script id="hexo-configurations">
+    let KEEP = window.KEEP || {};
+    KEEP.hexo_config = {"hostname":"blog.vinachiong.com","root":"/","language":"zh-cn"};
+    KEEP.theme_config = {"toc":{"enable":true,"number":true,"expand_all":false,"init_open":false},"style":{"primary_color":"#0066CC","avatar":"/images/avatar.svg","favicon":"/images/logo.svg","article_img_align":"left","left_side_width":"260px","content_max_width":"920px","hover":{"shadow":false,"scale":false},"first_screen":{"enable":false,"background_img":"/images/bg.svg","description":"Keep writing and Keep loving."},"scroll":{"progress_bar":{"enable":false},"percent":{"enable":false}}},"local_search":{"enable":false,"preload":false},"code_copy":{"enable":true,"style":"mac"},"pjax":{"enable":false},"lazyload":{"enable":false},"version":"3.4.3"};
+    KEEP.language_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+  </script>
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+
+    
+</div>
+
+
+<main class="page-container">
+
+    
+
+    <div class="page-main-content">
+
+        <div class="page-main-content-top">
+            <header class="header-wrapper">
+
+    <div class="header-content">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                Blog@Vina
+            </a>
+        </div>
+
+        <div class="right">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle">
+
+            <div class="main-content">
+
+                
+                    <div class="fade-in-down-animation">
+    <div class="article-content-container">
+
+        <div class="article-title">
+            <span class="title-hover-animation">源码分析-Lifecycle</span>
+        </div>
+
+        
+            <div class="article-header">
+                <div class="avatar">
+                    <img src="/images/avatar.svg">
+                </div>
+                <div class="info">
+                    <div class="author">
+                        <span class="name">@Vina</span>
+                        
+                            <span class="author-label">Lv1</span>
+                        
+                    </div>
+                    <div class="meta-info">
+                        <div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fas fa-edit"></i>&nbsp;2021-05-11 09:00:01
+    </span>
+    
+        <span class="article-categories article-meta-item">
+            <i class="fas fa-folder"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/categories/Android/">Android</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        &gt; <a href="/categories/Android/Jetpack/">Jetpack</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fas fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Android/">Android</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Jetpack/">Jetpack</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+                    </div>
+                </div>
+            </div>
+        
+
+        <div class="article-content markdown-body">
+            <h1 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h1><p>1.概述<br>2.Lifecycle中的运作流程及源码分析<br>3.源码中的设计模式</p>
+<h1 id="1-概述"><a href="#1-概述" class="headerlink" title="1.概述"></a>1.概述</h1><p>针对 Activity的‘生命周期’概念，抽象成具体的类型<code>Lifecycle</code>，接收生命周期事件，分发到各个‘观察者’实现。<br>‘生命周期’变得可观察、可感知，依赖‘生命周期’的工作，不再入侵到Activity、Fragment中。</p>
+<p>‘接口隔离’、‘单一职责’：LifecycleObserver观察者不需要知道Activity、Fragment对生命周期的内部细节，只需要在对应Event来临时候处理好该干的活</p>
+<ul>
+<li>以下是Jetpack中，Lifecycle 组件在工程中的主要模块：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">androidx.lifecycle:lifecycle-common</span><br><span class="line">androidx.lifecycle:lifecycle-livedata</span><br><span class="line">androidx.lifecycle:lifecycle-livedata-core</span><br><span class="line">androidx.lifecycle:lifecycle-runtime</span><br><span class="line">androidx.lifecycle:lifecycle-viewmodel</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<h1 id="2-Lifecycle中的运作流程及源码分析"><a href="#2-Lifecycle中的运作流程及源码分析" class="headerlink" title="2.Lifecycle中的运作流程及源码分析"></a>2.Lifecycle中的运作流程及源码分析</h1><p>Lifecycle组件的工作，是围绕「Event传递」展开：</p>
+<blockquote>
+<p><code>LifecycleOwner</code> -&gt; <code>Lifecycle</code> -&gt; <code>LifecycleObserver</code></p>
+</blockquote>
+<h2 id="2-1-核心接口-LifecycleOwner"><a href="#2-1-核心接口-LifecycleOwner" class="headerlink" title="2.1 核心接口 LifecycleOwner"></a>2.1 核心接口 LifecycleOwner</h2><p>Activity 和 Fragment 都实现了 <code>LifecycleOwner接口</code>, 组件间的接口隔离，只依赖接口，不依赖具体类型</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">LifecycleOwner</span> </span>&#123;	</span><br><span class="line">  <span class="function">Lifecycle <span class="title">getLifecycle</span><span class="params">()</span></span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-2-抽象类Lifecycle"><a href="#2-2-抽象类Lifecycle" class="headerlink" title="2.2 抽象类Lifecycle"></a>2.2 抽象类Lifecycle</h2><ul>
+<li>定义事件Event枚举类， LifecycleOwner 发出，以及LifecycleEventObserver接收</li>
+</ul>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ON<span class="emphasis">_CREATE,	ON_</span>START,	ON<span class="emphasis">_RESUME,	ON_</span>PAUSE, ON<span class="emphasis">_STOP, 	ON_</span>DESTROY,</span><br><span class="line">ON<span class="emphasis">_ANY（能匹配任意事件）</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>定义自身状态State枚举类，根据接收的Event，进行变化：ordinal值升降，取值范围[0,4]</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">DESTROYED（<span class="number">0</span>）, INITIALIZED（<span class="number">1</span>），CREATED（<span class="number">2</span>）,STARTED（<span class="number">3</span>），RESUMED（<span class="number">4</span>）</span><br><span class="line">顺序是 从小到大 , Enum的 ordinal 字段 对应定义位置</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> State <span class="title">getCurrentState</span><span class="params">()</span></span>; <span class="comment">// 当前 Lifecycle 处于哪个状态</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>抽象了LifecycleObserver的管理办法：允许观察者传入接口的实现接收Event</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">addObserver</span><span class="params">(LifecycleObserver observer)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">removeObserver</span><span class="params">(LifecycleObserver observer)</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-3-实现类-LifecycleRegistry"><a href="#2-3-实现类-LifecycleRegistry" class="headerlink" title="2.3 实现类 LifecycleRegistry"></a>2.3 实现类 LifecycleRegistry</h2><p><code>LifecycleOwner</code>接口是由<code>ComponentActivity</code>实现，<code>ComponentActivity</code>默认创建一个<code>LifecycleRegistry</code>实例变量。</p>
+<ul>
+<li><h4 id="弱引用持有-LifecycleOwner"><a href="#弱引用持有-LifecycleOwner" class="headerlink" title="弱引用持有 LifecycleOwner"></a>弱引用持有 LifecycleOwner</h4></li>
+</ul>
+<p><code>LifecycleRegistry</code>实例内部，以弱引用持有 LifecycleOwner（即Activity，Fragment）实例，保证Activity被GC回收时候，不会因Lifecycle或其内部类的强引用，导致错过回收，造成内存泄漏。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> WeakReference&lt;LifecycleOwner&gt; mLifecycleOwner;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><h4 id="handleLifecycleEvent-方法接收-Event"><a href="#handleLifecycleEvent-方法接收-Event" class="headerlink" title="handleLifecycleEvent() 方法接收 Event"></a>handleLifecycleEvent() 方法接收 Event</h4></li>
+</ul>
+<p><code>LifecycleRegistry</code>通过 <code>handleLifecycleEvent()</code>方法，接收LifecycleOwner发送的Event：</p>
+<ul>
+<li>根据「映射规则」，变更自身State</li>
+<li>根据当前状态，把事件Event 「合适地」通知<code>LifecycleObserver</code></li>
+</ul>
+<p>源码Event枚举中，有静态方法：upTo, upFrom, downTo, downFrom</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Nullable</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Event <span class="title">downFrom</span><span class="params">(<span class="meta">@NonNull</span> State state)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (state) &#123;</span><br><span class="line">        <span class="keyword">case</span> CREATED:	<span class="keyword">return</span> ON_DESTROY;</span><br><span class="line">        <span class="keyword">case</span> STARTED: <span class="keyword">return</span> ON_STOP;</span><br><span class="line">        <span class="keyword">case</span> RESUMED: <span class="keyword">return</span> ON_PAUSE;</span><br><span class="line">        <span class="keyword">default</span>: <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Nullable</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Event <span class="title">downTo</span><span class="params">(<span class="meta">@NonNull</span> State state)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (state) &#123;</span><br><span class="line">        <span class="keyword">case</span> DESTROYED: <span class="keyword">return</span> ON_DESTROY;</span><br><span class="line">        <span class="keyword">case</span> CREATED: <span class="keyword">return</span> ON_STOP;</span><br><span class="line">        <span class="keyword">case</span> STARTED: <span class="keyword">return</span> ON_PAUSE;</span><br><span class="line">        <span class="keyword">default</span>: <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Nullable</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Event <span class="title">upFrom</span><span class="params">(<span class="meta">@NonNull</span> State state)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (state) &#123;</span><br><span class="line">        <span class="keyword">case</span> INITIALIZED: <span class="keyword">return</span> ON_CREATE;</span><br><span class="line">        <span class="keyword">case</span> CREATED: <span class="keyword">return</span> ON_START;</span><br><span class="line">        <span class="keyword">case</span> STARTED: <span class="keyword">return</span> ON_RESUME;</span><br><span class="line">        <span class="keyword">default</span>: <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Nullable</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Event <span class="title">upTo</span><span class="params">(<span class="meta">@NonNull</span> State state)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (state) &#123;</span><br><span class="line">        <span class="keyword">case</span> CREATED: <span class="keyword">return</span> ON_CREATE;</span><br><span class="line">        <span class="keyword">case</span> STARTED: <span class="keyword">return</span> ON_START;</span><br><span class="line">        <span class="keyword">case</span> RESUMED: <span class="keyword">return</span> ON_RESUME;</span><br><span class="line">        <span class="keyword">default</span>: <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下是 State变化时候，对应Event 的映射规则对照表：</p>
+<img src="/2021/05/11/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-Lifecycle/lifecycle_state_event.jpg" class="" title="State的up、down Event对照表">
+
+<p>借助对照表帮助我们理解4个方法：</p>
+<p>​首先，方法的名称都修饰、作用于State：什么的Event导致State产生了变化<br>​<em>up</em>、<em>down</em>，表示“State值 加减 变化”, <em>from</em>表示该state值要变化，<em>to</em>表示成为这个state</p>
+<p>​<code>upTo(State)</code>         表示: 获取「导致当前状态上升成入参State」的Event<br>​<code>upFrom(State)</code>     表示: 获取「导致入参State要加1」的Event<br>​<code>downTo(State)</code>     表示: 获取「导致当前状态下降成入参State」的Event<br>​<code>downFrom(State)</code> 表示: 获取「导致入参State要减1」的Event</p>
+<ul>
+<li><h4 id="LifecycleEventObserver的存储"><a href="#LifecycleEventObserver的存储" class="headerlink" title="LifecycleEventObserver的存储"></a>LifecycleEventObserver的存储</h4></li>
+</ul>
+<p>LifecycleEventObserver的存储使用 <code>FastSafeIterableMap&lt;K, V&gt;</code>的数据结构，FastSafeIterableMap 的父类是 SafeIterableMap。</p>
+<ul>
+<li><code>SafeIterableMap</code>中是以<code>Entry&lt;K, V&gt;</code>类型链表的形式，存储数据，但API上是 map的形式。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SafeIterableMap</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; <span class="keyword">implements</span> <span class="title">Iterable</span>&lt;<span class="title">Map</span>.<span class="title">Entry</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt;&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@SuppressWarnings(&quot;WeakerAccess&quot;)</span> <span class="comment">/* synthetic access */</span></span><br><span class="line">    Entry&lt;K, V&gt; mStart;</span><br><span class="line">    <span class="keyword">private</span> Entry&lt;K, V&gt; mEnd;</span><br><span class="line">    <span class="comment">// using WeakHashMap over List&lt;WeakReference&gt;, so we don&#x27;t have to manually remove</span></span><br><span class="line">    <span class="comment">// WeakReferences that have null in them.</span></span><br><span class="line">    <span class="keyword">private</span> WeakHashMap&lt;SupportRemove&lt;K, V&gt;, Boolean&gt; mIterators = <span class="keyword">new</span> WeakHashMap&lt;&gt;();</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mSize = <span class="number">0</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// 代码省略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>FastSafeIterableMap</code>在已有链表基础上，多添加HashMap进行保存。典型的空间换时间，能以K快速查找的同时，也可以使用迭代器做遍历操作</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FastSafeIterableMap</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; <span class="keyword">extends</span> <span class="title">SafeIterableMap</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> HashMap&lt;K, Entry&lt;K, V&gt;&gt; mHashMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> Entry&lt;K, V&gt; <span class="title">get</span><span class="params">(K k)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> mHashMap.get(k);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> V <span class="title">putIfAbsent</span><span class="params">(<span class="meta">@NonNull</span> K key, <span class="meta">@NonNull</span> V v)</span> </span>&#123;</span><br><span class="line">        Entry&lt;K, V&gt; current = get(key);</span><br><span class="line">        <span class="keyword">if</span> (current != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> current.mValue;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 新增的Entry加入到hashMap的同时，</span></span><br><span class="line">        <span class="comment">// 也维护到链表中</span></span><br><span class="line">        mHashMap.put(key, put(key, v)); </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> V <span class="title">remove</span><span class="params">(<span class="meta">@NonNull</span> K key)</span> </span>&#123;</span><br><span class="line">        V removed = <span class="keyword">super</span>.remove(key);</span><br><span class="line">        mHashMap.remove(key);</span><br><span class="line">        <span class="keyword">return</span> removed;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><h4 id="静态内部类-ObserverWithState-LifecycleEventObserver的装饰者"><a href="#静态内部类-ObserverWithState-LifecycleEventObserver的装饰者" class="headerlink" title="静态内部类 ObserverWithState  - LifecycleEventObserver的装饰者"></a>静态内部类 ObserverWithState  - LifecycleEventObserver的装饰者</h4><p>使用装饰者模式对<code>LifecycleEventObserver</code>进行“属性、行为扩展”的封装，记录 LifecycleEventObserver 对应 Lifecycle的状态State。为后面<code>LifecycleRegistry</code>的状态同步行为提供基础。</p>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">ObserverWithState</span> </span>&#123;</span><br><span class="line">       State mState; <span class="comment">// Observer当前已接收的Lifecycle.State</span></span><br><span class="line">       LifecycleEventObserver mLifecycleObserver; <span class="comment">// 实际的观察者</span></span><br><span class="line"></span><br><span class="line">       ObserverWithState(LifecycleObserver observer, State initialState) &#123;</span><br><span class="line">           mLifecycleObserver = Lifecycling.lifecycleEventObserver(observer);</span><br><span class="line">           mState = initialState;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="function"><span class="keyword">void</span> <span class="title">dispatchEvent</span><span class="params">(LifecycleOwner owner, Event event)</span> </span>&#123;</span><br><span class="line">           State newState = event.getTargetState();</span><br><span class="line">           mState = min(mState, newState);</span><br><span class="line">           mLifecycleObserver.onStateChanged(owner, event);</span><br><span class="line">           mState = newState;</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><h4 id="addObserver-LifecycleObserver-obserber-方法："><a href="#addObserver-LifecycleObserver-obserber-方法：" class="headerlink" title="addObserver(LifecycleObserver obserber)方法："></a>addObserver(LifecycleObserver obserber)方法：</h4><ul>
+<li>所有新增的Observer是添加到<code>链表的尾部</code>，并且马上与<code>LifecycleRegistry.mState</code>做同步。“同步”操作，保证observer能完整接收到所有已经发生的Event。</li>
+<li>observer的默认状态 是 DESTROYED : INITIALIZED 二选一</li>
+<li>事件发送是通过 <code>ObserverWithState.dispatchEvent(LifecycleOnwer, Lifecycle.Event)</code>。</li>
+<li>当前新增observer完成同步后，再根据状态判断是否调用<code>sync()</code>方法对整个链表做检查并同步</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addObserver</span><span class="params">(<span class="meta">@NonNull</span> LifecycleObserver observer)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建ObserverWithState对象，加入到mObserverMap</span></span><br><span class="line">    State initialState = mState == DESTROYED ? DESTROYED : INITIALIZED;</span><br><span class="line">    ObserverWithState statefulObserver = <span class="keyword">new</span> ObserverWithState(observer, initialState);</span><br><span class="line">    ObserverWithState previous = mObserverMap.putIfAbsent(observer, statefulObserver);</span><br><span class="line">    <span class="comment">// 方法putIfAbsent()返回 !null，表示observer已经添加并初始化过，直接return</span></span><br><span class="line">    <span class="keyword">if</span> (previous != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 从弱引用中获取LifecycleOwner对象，即Activity或Fragment</span></span><br><span class="line">    LifecycleOwner lifecycleOwner = mLifecycleOwner.get();</span><br><span class="line">    <span class="keyword">if</span> (lifecycleOwner == <span class="keyword">null</span>) &#123; <span class="comment">// Activity或Fragment已被回收</span></span><br><span class="line">      <span class="comment">// it is null we should be destroyed. Fallback quickly</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 是否再次进入</span></span><br><span class="line">    <span class="keyword">boolean</span> isReentrance = mAddingObserverCounter != <span class="number">0</span> || mHandlingEvent;</span><br><span class="line">    <span class="comment">/* </span></span><br><span class="line"><span class="comment">      计算当前的observer的目标状态：</span></span><br><span class="line"><span class="comment">      `siblingState`：observer在链表中的前一个OB的状态</span></span><br><span class="line"><span class="comment">      `mState`:当前组件所处的状态</span></span><br><span class="line"><span class="comment">      `mParentStates.last()`：状态列表中最后一个状态</span></span><br><span class="line"><span class="comment">      三者状态的最小值就是 targetState</span></span><br><span class="line"><span class="comment">    */</span> </span><br><span class="line">    State targetState = calculateTargetState(observer);</span><br><span class="line">    mAddingObserverCounter++;</span><br><span class="line">    <span class="comment">/* </span></span><br><span class="line"><span class="comment">        statefulObserver.mState 是第一行initialState值,只要比targetState小，</span></span><br><span class="line"><span class="comment">        而且observer还在本对象中（有可能在某些交互后被remove）</span></span><br><span class="line"><span class="comment">        执行循环体内</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    <span class="keyword">while</span> ((statefulObserver.mState.compareTo(targetState) &lt; <span class="number">0</span></span><br><span class="line">            &amp;&amp; mObserverMap.contains(observer))) &#123;</span><br><span class="line">      <span class="comment">// 确保observer的state与当前组件的state达到一致</span></span><br><span class="line">      pushParentState(statefulObserver.mState);</span><br><span class="line">      statefulObserver.dispatchEvent(lifecycleOwner, upEvent(statefulObserver.mState));</span><br><span class="line">      popParentState();</span><br><span class="line">      <span class="comment">// mState / subling may have been changed recalculate</span></span><br><span class="line">      targetState = calculateTargetState(observer);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!isReentrance) &#123;</span><br><span class="line">      <span class="comment">// we do sync only on the top level.</span></span><br><span class="line">      sync();</span><br><span class="line">    &#125;</span><br><span class="line">    mAddingObserverCounter--;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="ReportFragment类"><a href="#ReportFragment类" class="headerlink" title="- ReportFragment类"></a>- ReportFragment类</h3><p>在ComponetActivity中，onCreate()方法中 调用<code>ReportFragment.init(this)</code>，添加一个ReportFragment实例到自身的Fragment事务管理。通过ReportFragment代为调用 LifecycleRegistry的 <code>handleLifecycleEvent()</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">onActivityCreated -&gt; ON_CREATE</span><br><span class="line">onStart 					-&gt; ON_START</span><br><span class="line">onResume 					-&gt; ON_RESUME</span><br><span class="line">onPause 					-&gt; ON_PAUSE</span><br><span class="line">onStop 						-&gt; ON_STOP</span><br><span class="line">onDestroy  				-&gt; ON_DESTROY</span><br></pre></td></tr></table></figure>
+
+<p>总结优势：</p>
+<ul>
+<li>模板方法模式 和 观察者模式</li>
+<li>避免在视图控件中注入监听代码</li>
+</ul>
+<h1 id="3-源码中的设计模式"><a href="#3-源码中的设计模式" class="headerlink" title="3.源码中的设计模式"></a>3.源码中的设计模式</h1><ul>
+<li><p>先说「观察者设计模式」 + 普通的回调</p>
+</li>
+<li><p>放在Android Activity 中，MVP模式中也是常见的回调模式，但是需要自行判断View的状态，并且释放引用，这是弊端</p>
+</li>
+<li><p>陈述：</p>
+<ul>
+<li>符合「迪米特原则（对象尽量对另一个对象少依赖）」，</li>
+<li>LiveData+Lifecycle方案是一道横在「含生命周期组件 和 业务逻辑层」之间的接口隔离方案，</li>
+<li>业务层其实只想知道生命周期，而不是 Activity 和 Fragment</li>
+<li>一切交给LiveData，谁要观察LiveData的，就要遵循相关的约定：实现LiveData.Observer接口。</li>
+</ul>
+</li>
+<li><p>LiveData只知道Lifecycle，但也不知道Activity和Fragment的存在</p>
+</li>
+<li><p>内部的GenerateAdapter，属于适配器模式</p>
+</li>
+</ul>
+
+        </div>
+
+        
+
+        
+
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom">
+            <footer class="footer">
+    <div class="info-container">
+        <div class="copyright-info info-item">
+            &copy;
+            
+              <span>2020</span>&nbsp;-&nbsp;
+            
+            2021&nbsp;<i class="fas fa-heart icon-animate"></i>&nbsp;<a href="/">@Vina</a>
+        </div>
+        
+        <div class="theme-info info-item">
+            由 <a target="_blank" href="https://hexo.io">Hexo</a> 驱动&nbsp;|&nbsp;主题&nbsp;<a class="theme-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep v3.4.3</a>
+        </div>
+        
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    
+        <div class="post-tools">
+            <div class="post-tools-container">
+    <ul class="tools-list">
+        <!-- TOC aside toggle -->
+        
+            <li class="tools-item page-aside-toggle">
+                <i class="fas fa-outdent"></i>
+            </li>
+        
+
+        <!-- go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <div class="right-bottom-side-tools">
+        <div class="side-tools-container">
+    <ul class="side-tools-list">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-expand-width flex-center">
+            <i class="fas fa-arrows-alt-h"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        
+            <li class="tools-item tool-scroll-to-top flex-center">
+                <i class="fas fa-arrow-up"></i>
+            </li>
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list">
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+        
+    </ul>
+</div>
+
+    </div>
+
+    
+        <aside class="page-aside">
+            <div class="post-toc-wrap">
+    <div class="post-toc">
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95"><span class="nav-number">1.</span> <span class="nav-text">目录</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E6%A6%82%E8%BF%B0"><span class="nav-number">2.</span> <span class="nav-text">1.概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Lifecycle%E4%B8%AD%E7%9A%84%E8%BF%90%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%8F%8A%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">2.Lifecycle中的运作流程及源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-%E6%A0%B8%E5%BF%83%E6%8E%A5%E5%8F%A3-LifecycleOwner"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 核心接口 LifecycleOwner</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-%E6%8A%BD%E8%B1%A1%E7%B1%BBLifecycle"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 抽象类Lifecycle</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-%E5%AE%9E%E7%8E%B0%E7%B1%BB-LifecycleRegistry"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 实现类 LifecycleRegistry</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%B1%E5%BC%95%E7%94%A8%E6%8C%81%E6%9C%89-LifecycleOwner"><span class="nav-number">3.3.0.1.</span> <span class="nav-text">弱引用持有 LifecycleOwner</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#handleLifecycleEvent-%E6%96%B9%E6%B3%95%E6%8E%A5%E6%94%B6-Event"><span class="nav-number">3.3.0.2.</span> <span class="nav-text">handleLifecycleEvent() 方法接收 Event</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#LifecycleEventObserver%E7%9A%84%E5%AD%98%E5%82%A8"><span class="nav-number">3.3.0.3.</span> <span class="nav-text">LifecycleEventObserver的存储</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E5%86%85%E9%83%A8%E7%B1%BB-ObserverWithState-LifecycleEventObserver%E7%9A%84%E8%A3%85%E9%A5%B0%E8%80%85"><span class="nav-number">3.3.0.4.</span> <span class="nav-text">静态内部类 ObserverWithState  - LifecycleEventObserver的装饰者</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#addObserver-LifecycleObserver-obserber-%E6%96%B9%E6%B3%95%EF%BC%9A"><span class="nav-number">3.3.0.5.</span> <span class="nav-text">addObserver(LifecycleObserver obserber)方法：</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ReportFragment%E7%B1%BB"><span class="nav-number">3.3.1.</span> <span class="nav-text">- ReportFragment类</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E6%BA%90%E7%A0%81%E4%B8%AD%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F"><span class="nav-number">4.</span> <span class="nav-text">3.源码中的设计模式</span></a></li></ol>
+    </div>
+</div>
+        </aside>
+    
+
+    <div class="image-viewer-container">
+    <img src="">
+</div>
+
+
+    
+
+</main>
+
+
+
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/main.js"></script>
+
+<script src="/js/header-shrink.js"></script>
+
+<script src="/js/back2top.js"></script>
+
+<script src="/js/dark-light-toggle.js"></script>
+
+
+
+
+
+    
+<script src="/js/code-copy.js"></script>
+
+
+
+
+
+<div class="post-scripts">
+    
+        
+<script src="/js/left-side-toggle.js"></script>
+
+<script src="/js/libs/anime.min.js"></script>
+
+<script src="/js/toc.js"></script>
+
+    
+</div>
+
+
+
+</body>
+</html>
